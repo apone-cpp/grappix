@@ -80,8 +80,8 @@ elseif(WIN32)
   set(SOURCE_FILES ${SOURCE_FILES} grappix/specific/window_pc.cpp)
 
   find_package(OpenGL REQUIRED)
-  find_package(glew REQUIRED)
-  find_library(GLFW_LIBRARY NAMES libglfw3.a glfw3 glfw3dll REQUIRED)
+  # find_package(glew REQUIRED)
+  # find_library(GLFW_LIBRARY NAMES libglfw3.a glfw3 glfw3dll REQUIRED)
 
 #  find_path(GLFW_PATH GLFW/glfw3.h)
 #  include_directories(${GLFW_PATH})
@@ -90,10 +90,11 @@ elseif(WIN32)
   set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENGL_LIBRARIES})
   include_directories(${OPENGL_INCLUDE_DIRS})
 
-  set(EXTRA_LIBS ${EXTRA_LIBS} ${GLEW_LIBRARIES})
-  include_directories(${GLEW_INCLUDE_DIRS})
+  set(EXTRA_LIBS ${EXTRA_LIBS} glew glfw)
+  #${GLEW_LIBRARIES})
+  #include_directories(${GLEW_INCLUDE_DIRS})
 
-  set(EXTRA_LIBS ${EXTRA_LIBS} ${GLFW_LIBRARY})
+  # set(EXTRA_LIBS ${EXTRA_LIBS} ${GLFW_LIBRARY})
 
 
 elseif(UNIX)
@@ -109,8 +110,9 @@ elseif(UNIX)
   set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENGL_LIBRARIES})
   include_directories(${OPENGL_INCLUDE_DIRS})
   set(EXTRA_LIBS ${EXTRA_LIBS} ${GLFW_LIBRARY})
-  find_library(GLEW_LIBRARY GLEW REQUIRED)
-  set(EXTRA_LIBS ${EXTRA_LIBS} ${GLEW_LIBRARY})
+  #find_library(GLEW_LIBRARY GLEW REQUIRED)
+  set(EXTRA_LIBS ${EXTRA_LIBS} glew) # ${GLEW_LIBRARY})
+  #include_directories(external/glew/include)
 
   if(NOT APPLE)
     if(GLFW_LIBRARY MATCHES "\\.a")
