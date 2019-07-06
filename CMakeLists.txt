@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(cpp-mods.grappix)
+set(CMAKE_CXX_STANDARD 17)
 
 set(MAIN_FILES
     grappix/buffer.cpp
@@ -22,37 +23,32 @@ set(FREETYPE_FILES
     grappix/freetype-gl/texture-font.c
     grappix/freetype-gl/vector.c)
 
-# grappix/specific/glew.c
-
-# grappix/specific/eglutil.cpp
-# grappix/specific/window_android.cpp
-# grappix/specific/window_pc.cpp
-# grappix/specific/window_pi.cpp
-
-#file(GLOB MAIN_FILES grappix/*.cpp grappix/gui/*.cpp)
-#file(GLOB FREETYPE_FILES grappix/freetype-gl/*.c)
 set(SOURCE_FILES ${MAIN_FILES} ${FREETYPE_FILES})
 
-file(GLOB SPECIFIC_FILES grappix/specific/*.cpp)
-add_custom_target(grappix.specific_files SOURCES ${SPECIFIC_FILES})
-
 if(NOT TARGET image)
-  add_subdirectory(../image image)
+    add_subdirectory(../image image)
 endif()
 
 if(NOT TARGET tween)
-  add_subdirectory(../tween tween)
+    add_subdirectory(../tween tween)
 endif()
 
 if(NOT TARGET coreutils)
-	add_subdirectory(../coreutils coreutils)
+    add_subdirectory(../coreutils coreutils)
 endif()
 
 if(NOT TARGET freetype)
-  add_subdirectory(../freetype freetype)
+    add_subdirectory(../freetype freetype)
+    include_directories(../freetype/include)
 endif()
-include_directories(${FREETYPE_INCLUDE_DIR})
 
+if(NOT TARGET glew)
+    add_subdirectory(../glew glew)
+endif()
+
+if(NOT TARGET glfw)
+    add_subdirectory(../glfw glfw)
+endif()
 
 if(APPLE)
   find_library(COCOA_LIBRARY Cocoa)
@@ -63,8 +59,8 @@ endif()
 
 set(OpenGL_GL_PREFERENCE GLVND)
 
-if(EMSCRIPTEN)
-  
+if(EMSCRIPTEN)  
+
   set(SOURCE_FILES ${SOURCE_FILES} grappix/specific/window_pc.cpp)
   set(EXTRA_LIBS ${EXTRA_LIBS} -lGL)
 
@@ -80,39 +76,17 @@ elseif(WIN32)
   set(SOURCE_FILES ${SOURCE_FILES} grappix/specific/window_pc.cpp)
 
   find_package(OpenGL REQUIRED)
-  # find_package(glew REQUIRED)
-  # find_library(GLFW_LIBRARY NAMES libglfw3.a glfw3 glfw3dll REQUIRED)
-
-#  find_path(GLFW_PATH GLFW/glfw3.h)
-#  include_directories(${GLFW_PATH})
-#  message(${GLFW_PATH})
-  #
   set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENGL_LIBRARIES})
   include_directories(${OPENGL_INCLUDE_DIRS})
-
   set(EXTRA_LIBS ${EXTRA_LIBS} glew glfw)
-  #${GLEW_LIBRARIES})
-  #include_directories(${GLEW_INCLUDE_DIRS})
-
-  # set(EXTRA_LIBS ${EXTRA_LIBS} ${GLFW_LIBRARY})
-
 
 elseif(UNIX)
   set(SOURCE_FILES ${SOURCE_FILES} grappix/specific/window_pc.cpp)
   find_package(OpenGL REQUIRED)
 
-  if(APPLE)
-    find_library(GLFW_LIBRARY NAMES glfw REQUIRED)
-  else() # Ubuntu changed naming between 14.0 and 14.10
-    find_library(GLFW_LIBRARY NAMES libglfw.so.3 libglfw3.a REQUIRED)
-  endif()
-
   set(EXTRA_LIBS ${EXTRA_LIBS} ${OPENGL_LIBRARIES})
   include_directories(${OPENGL_INCLUDE_DIRS})
-  set(EXTRA_LIBS ${EXTRA_LIBS} ${GLFW_LIBRARY})
-  #find_library(GLEW_LIBRARY GLEW REQUIRED)
-  set(EXTRA_LIBS ${EXTRA_LIBS} glew) # ${GLEW_LIBRARY})
-  #include_directories(external/glew/include)
+  set(EXTRA_LIBS ${EXTRA_LIBS} glew glfw)
 
   if(NOT APPLE)
     if(GLFW_LIBRARY MATCHES "\\.a")
@@ -127,30 +101,26 @@ elseif(UNIX)
 else()
 endif()
 
-add_definitions(-DWITH_FREETYPE)
-
 file(GLOB SHADERS grappix/shaders/*.glsl)
-
 add_custom_target(grappix.shaders SOURCES ${SHADERS})
+if(NOT ANDROID)
+    add_executable(bin2c bin2c.c)
+    set(BIN2C bin2c)
+else()
+    set(BIN2C ${CMAKE_SOURCE_DIR}/bin/bin2c)
+endif()
 
-set(BIN2C ${CMAKE_SOURCE_DIR}/bin/bin2c)
-
-file(MAKE_DIRECTORY .shaderx)
-file(MAKE_DIRECTORY .shader)
 foreach(SHADER ${SHADERS})
-	message(${SHADER})
+  message(${SHADER})
   get_filename_component(SHADERNAME ${SHADER} NAME)
   string(REPLACE "." "_" NAME2 ${SHADERNAME})
-	add_custom_command(OUTPUT ${SHADERNAME}.c
-		COMMAND ${CMAKE_COMMAND} -E copy ${SHADER} .shader/${SHADERNAME}
-		COMMAND ${BIN2C} -o ${SHADERNAME}.c -n "_shader_${NAME2}" .shader/${SHADERNAME}
-		DEPENDS ${SHADER})
-	set(SOURCE_FILES ${SOURCE_FILES} ${SHADERNAME}.c)
+    add_custom_command(OUTPUT ${SHADERNAME}.c
+        COMMAND ${BIN2C} -o ${SHADERNAME}.c -n "_shader_${NAME2}" ${SHADER}
+        DEPENDS ${SHADER})
+    set(SOURCE_FILES ${SOURCE_FILES} ${SHADERNAME}.c)
 endforeach()
-
-include_directories(.. grappix/freetype-gl)
 
 add_library(grappix ${SOURCE_FILES})
 target_link_libraries(grappix PRIVATE coreutils image tween freetype PUBLIC ${EXTRA_LIBS})
-target_compile_definitions(grappix PUBLIC GLEW_STATIC)
-target_include_directories(grappix PRIVATE ..)
+target_compile_definitions(grappix PUBLIC GLEW_STATIC WITH_FREETYPE)
+target_include_directories(grappix PRIVATE .. grappix/freetype-gl)
