@@ -8,6 +8,7 @@
 
 using namespace std;
 
+extern "C" {
 extern unsigned char _shader_plain_v_glsl[];
 extern unsigned char _shader_plain_f_glsl[];
 extern unsigned char _shader_texture_v_glsl[];
@@ -16,13 +17,14 @@ extern unsigned char _shader_font_v_glsl[];
 extern unsigned char _shader_font_f_glsl[];
 extern unsigned char _shader_fontdf_f_glsl[];
 
-extern int _shader_plain_v_glsl_len;
-extern int _shader_plain_f_glsl_len;
-extern int _shader_texture_v_glsl_len;
-extern int _shader_texture_f_glsl_len;
-extern int _shader_font_v_glsl_len;
-extern int _shader_font_f_glsl_len;
-extern int _shader_fontdf_f_glsl_len;
+extern long int _shader_plain_v_glsl_size;
+extern long int _shader_plain_f_glsl_size;
+extern long int _shader_texture_v_glsl_size;
+extern long int _shader_texture_f_glsl_size;
+extern long int _shader_font_v_glsl_size;
+extern long int _shader_font_f_glsl_size;
+extern long int _shader_fontdf_f_glsl_size;
+}
 
 namespace grappix {
 
@@ -43,7 +45,7 @@ GLuint loadShader(GLenum shaderType, const std::string &source) {
 			string msg;
 			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
 			if(infoLen) {
-				char buf[infoLen];
+				char buf[2048];
 				glGetShaderInfoLog(shader, infoLen, NULL, buf);
 				msg = buf;
 				glDeleteShader(shader);
@@ -60,13 +62,13 @@ GLuint loadShader(GLenum shaderType, const std::string &source) {
 }
 
 GLuint createProgram(unsigned char *vertexSource, int vlen, unsigned char *fragmentSource, int flen) {
-	char vsource[vlen+1];
-	memcpy(vsource, vertexSource, vlen);
+	std::vector<char> vsource(vlen+1);
+	memcpy(&vsource[0], vertexSource, vlen);
 	vsource[vlen] = 0;
-	char fsource[flen+1];
-	memcpy(fsource, fragmentSource, flen);
+	std::vector<char> fsource(flen+1);
+	memcpy(&fsource[0], fragmentSource, flen);
 	fsource[flen] = 0;
-	return createProgram(vsource, fsource);
+	return createProgram(&vsource[0], &fsource[0]);
 }
 
 
@@ -91,7 +93,7 @@ GLuint createProgram(const string &vertexSource, const string &fragmentSource) {
 			string msg;
 			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &bufLength);
 			if(bufLength) {
-				char buf[bufLength];
+				char buf[2048];
 				glGetProgramInfoLog(program, bufLength, NULL, buf);
 				msg = buf;
 			}
@@ -109,10 +111,10 @@ const Program& get_program(program_name program) {
 	if(programs.size() == 0) {
 		//LOGD("RESIZE");
 		programs.resize(4);
-		programs[FLAT_PROGRAM] = Program(_shader_plain_v_glsl, _shader_plain_v_glsl_len, _shader_plain_f_glsl,_shader_plain_f_glsl_len);
-		programs[TEXTURED_PROGRAM] = Program(_shader_texture_v_glsl, _shader_texture_v_glsl_len, _shader_texture_f_glsl, _shader_texture_f_glsl_len);
-		programs[FONT_PROGRAM] = Program(_shader_font_v_glsl, _shader_font_v_glsl_len, _shader_font_f_glsl, _shader_font_f_glsl_len);
-		programs[FONT_PROGRAM_DF] = Program(_shader_font_v_glsl, _shader_font_v_glsl_len, _shader_fontdf_f_glsl, _shader_fontdf_f_glsl_len);
+		programs[FLAT_PROGRAM] = Program(_shader_plain_v_glsl, _shader_plain_v_glsl_size, _shader_plain_f_glsl,_shader_plain_f_glsl_size);
+		programs[TEXTURED_PROGRAM] = Program(_shader_texture_v_glsl, _shader_texture_v_glsl_size, _shader_texture_f_glsl, _shader_texture_f_glsl_size);
+		programs[FONT_PROGRAM] = Program(_shader_font_v_glsl, _shader_font_v_glsl_size, _shader_font_f_glsl, _shader_font_f_glsl_size);
+		programs[FONT_PROGRAM_DF] = Program(_shader_font_v_glsl, _shader_font_v_glsl_size, _shader_fontdf_f_glsl, _shader_fontdf_f_glsl_size);
 	}
 	//LOGD("returning %p", &programs[program]);
 
@@ -163,7 +165,7 @@ void Program::createProgram() {
 			string msg;
 			glGetProgramiv(p, GL_INFO_LOG_LENGTH, &bufLength);
 			if(bufLength) {
-				char buf[bufLength];
+				char buf[2048];
 				glGetProgramInfoLog(p, bufLength, NULL, buf);
 				msg = buf;
 			}

@@ -133,14 +133,17 @@ file(GLOB SHADERS grappix/shaders/*.glsl)
 
 add_custom_target(grappix.shaders SOURCES ${SHADERS})
 
+set(BIN2C ${CMAKE_SOURCE_DIR}/bin/bin2c)
+
 file(MAKE_DIRECTORY .shaderx)
 file(MAKE_DIRECTORY .shader)
 foreach(SHADER ${SHADERS})
 	message(${SHADER})
-	get_filename_component(SHADERNAME ${SHADER} NAME)
+  get_filename_component(SHADERNAME ${SHADER} NAME)
+  string(REPLACE "." "_" NAME2 ${SHADERNAME})
 	add_custom_command(OUTPUT ${SHADERNAME}.c
 		COMMAND ${CMAKE_COMMAND} -E copy ${SHADER} .shader/${SHADERNAME}
-		COMMAND xxd -i .shader/${SHADERNAME} > ${SHADERNAME}.c
+		COMMAND ${BIN2C} -o ${SHADERNAME}.c -n "_shader_${NAME2}" .shader/${SHADERNAME}
 		DEPENDS ${SHADER})
 	set(SOURCE_FILES ${SOURCE_FILES} ${SHADERNAME}.c)
 endforeach()
@@ -148,5 +151,6 @@ endforeach()
 include_directories(.. grappix/freetype-gl)
 
 add_library(grappix ${SOURCE_FILES})
-target_link_libraries(grappix coreutils image tween freetype ${EXTRA_LIBS})
+target_link_libraries(grappix PRIVATE coreutils image tween freetype PUBLIC ${EXTRA_LIBS})
+target_compile_definitions(grappix PUBLIC GLEW_STATIC)
 target_include_directories(grappix PRIVATE ..)
